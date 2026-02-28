@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LOCKED IN: HARD MODE</title>
+    <title>LOCKED IN</title>
     <style>
         body { 
-            font-family: 'Inter', sans-serif; 
+            font-family: 'Inter', system-ui, sans-serif; 
             text-align: center; 
             height: 100vh;
             display: flex;
@@ -16,67 +16,106 @@
             background-color: #000;
             color: #fff;
             overflow: hidden;
-            transition: background 0.1s;
-        }
-        #timer { font-size: clamp(4rem, 12vw, 8rem); font-weight: 900; }
-        .hidden { display: none; }
-        
-        .shame-mode { animation: flash 0.2s infinite; }
-        @keyframes flash {
-            0% { background: #550000; }
-            50% { background: #000; }
-            100% { background: #550000; }
+            touch-action: manipulation; /* Prevents accidental zooming */
         }
 
-        #report { background: #111; padding: 20px; border-radius: 15px; border: 1px solid #333; margin: 20px auto; max-width: 80%; }
-        .stat-val { color: #ff0000; font-weight: bold; }
-        button { margin-top: 20px; padding: 15px 50px; font-size: 1.2rem; background: #fff; color: #000; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; }
+        /* Setup Container */
+        #setup { display: flex; flex-direction: column; align-items: center; gap: 20px; }
+
+        h1 { font-size: 3rem; margin: 0; cursor: pointer; user-select: none; }
+        
+        input { 
+            background: #222; 
+            color: #fff; 
+            border: 2px solid #444; 
+            padding: 20px; 
+            font-size: 2rem; 
+            width: 120px; 
+            text-align: center; 
+            border-radius: 12px;
+            outline: none;
+        }
+
+        /* The Button - Made much bigger and clearer */
+        .big-button { 
+            padding: 25px 60px; 
+            font-size: 1.5rem; 
+            background: #ffffff; 
+            color: #000; 
+            border: none; 
+            border-radius: 50px; 
+            cursor: pointer; 
+            font-weight: 900; 
+            text-transform: uppercase;
+            box-shadow: 0 10px 20px rgba(255,255,255,0.1);
+        }
+
+        #timer { font-size: clamp(5rem, 20vw, 10rem); font-weight: 900; font-family: monospace; }
+        .hidden { display: none !important; }
+        .shame-mode { animation: flash 0.2s infinite; }
+        @keyframes flash { 0% { background: #600; } 50% { background: #000; } 100% { background: #600; } }
+
+        #report { background: #111; padding: 30px; border-radius: 20px; border: 1px solid #333; width: 80%; }
     </style>
 </head>
 <body id="body">
 
     <div id="setup">
-        <h1>LOCKED IN.</h1>
-        <p>Hard Mode: +5 mins per violation.</p>
-        <input type="number" id="mins" value="25" style="padding:10px; width:60px;">
-        <br>
-        <button onclick="lockIn()">INITIALIZE</button>
+        <h1 id="secret-trigger" onclick="secretCheck()">LOCKED IN.</h1>
+        <p style="color: #888;">Enter minutes to focus</p>
+        <input type="number" id="mins" value="25" pattern="\d*">
+        <button class="big-button" onclick="lockIn()">Initialize</button>
     </div>
 
     <div id="active-timer" class="hidden">
         <div id="timer">25:00</div>
-        <p id="status">SENTRY ACTIVE</p>
+        <p id="status" style="letter-spacing: 5px; color: #666;">DO NOT LEAVE</p>
     </div>
 
     <div id="final-report" class="hidden">
         <h1>SESSION ENDED</h1>
-        <div id="report">
-            <p>Total Violations: <span id="final-violations" class="stat-val">0</span></p>
-            <p>Penalty Time Added: <span id="final-penalty" class="stat-val">0</span> mins</p>
-            <p id="verdict"></p>
+        <div id="report" style="margin: 0 auto;">
+            <p>Violations: <span id="final-violations" style="color:red">0</span></p>
+            <p>Penalty Time: <span id="final-penalty" style="color:red">0</span>m</p>
+            <h3 id="verdict"></h3>
         </div>
-        <button onclick="location.reload()">RE-LOCK</button>
+        <button class="big-button" style="margin-top: 20px;" onclick="location.reload()">Reset</button>
     </div>
 
-    <audio id="alarm" loop>
+    <audio id="alarm" loop preload="auto">
         <source src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg" type="audio/ogg">
     </audio>
 
     <script>
-        let time;
-        let originalTime;
-        let interval;
-        let penalties = 0;
+        let time, interval, penalties = 0;
+        let secretCounter = 0;
         const body = document.getElementById('body');
         const alarm = document.getElementById('alarm');
 
-        window.onbeforeunload = function() { return "PROGRESS WILL BE LOST."; };
+        // Prevent accidental exits
+        window.onbeforeunload = () => "STAY LOCKED IN.";
+
+        // Secret Shortcut
+        function secretCheck() {
+            secretCounter++;
+            if (secretCounter >= 3 && time > 0) {
+                time = 10;
+                updateDisplay();
+                alert("Developer Bypass Active: 10 seconds remaining.");
+            }
+        }
 
         function lockIn() {
-            originalTime = document.getElementById('mins').value;
-            time = originalTime * 60;
+            const val = document.getElementById('mins').value;
+            if (val < 1) return alert("Enter a valid time.");
+            
+            time = val * 60;
             document.getElementById('setup').classList.add('hidden');
             document.getElementById('active-timer').classList.remove('hidden');
+            
+            // Required for mobile audio to "unlock"
+            alarm.play().then(() => alarm.pause()); 
+            
             startCountdown();
         }
 
@@ -94,4 +133,32 @@
         function updateDisplay() {
             let m = Math.floor(time / 60);
             let s = time % 60;
-            document.getElementById('timer').innerText = `${m}:${s < 10
+            document.getElementById('timer').innerText = `${m}:${s < 10 ? '0' : ''}${s}`;
+        }
+
+        function showReport() {
+            clearInterval(interval);
+            document.getElementById('active-timer').classList.add('hidden');
+            document.getElementById('final-report').classList.remove('hidden');
+            document.getElementById('final-violations').innerText = penalties;
+            document.getElementById('final-penalty').innerText = penalties * 5;
+            document.getElementById('verdict').innerText = penalties === 0 ? "ELITE FOCUS" : "UNSATISFACTORY";
+            body.style.background = penalties === 0 ? "#020" : "#200";
+        }
+
+        document.addEventListener("visibilitychange", () => {
+            if (document.hidden && time > 0) {
+                time += 300;
+                penalties++;
+                body.classList.add('shame-mode');
+                alarm.play();
+                setTimeout(() => {
+                    alert("SENTRY ALERT: VIOLATION DETECTED. +5 MINUTES.");
+                    body.classList.remove('shame-mode');
+                    alarm.pause();
+                }, 500);
+            }
+        });
+    </script>
+</body>
+</html>
