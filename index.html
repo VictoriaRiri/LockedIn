@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LOCKED IN</title>
+    <style>
+        body { 
+            font-family: 'Inter', sans-serif; 
+            text-align: center; 
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            margin: 0;
+            background-color: #000;
+            color: #fff;
+            overflow: hidden;
+        }
+        #timer { font-size: clamp(5rem, 15vw, 10rem); font-weight: 900; font-variant-numeric: tabular-nums; }
+        .hidden { display: none; }
+        .reset-flash { background: #ff0000 !important; }
+        
+        /* Pulse animation to show the "Sentry" is watching */
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.7; }
+            100% { opacity: 1; }
+        }
+        .active-pulse { animation: pulse 2s infinite ease-in-out; }
+
+        input { background: #222; color: #fff; border: 1px solid #444; padding: 15px; font-size: 1.5rem; width: 100px; text-align: center; border-radius: 8px; }
+        button { margin-top: 20px; padding: 15px 50px; font-size: 1.2rem; background: #fff; color: #000; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; text-transform: uppercase; letter-spacing: 2px; }
+        button:hover { background: #ccc; }
+        h1 { font-size: 3rem; letter-spacing: -2px; margin-bottom: 0; }
+        p { color: #666; }
+    </style>
+</head>
+<body id="body">
+
+    <div id="setup">
+        <h1>LOCKED IN.</h1>
+        <p>You leave. You lose. Minutes:</p>
+        <input type="number" id="mins" value="25">
+        <br>
+        <button onclick="lockIn()">START SESSION</button>
+    </div>
+
+    <div id="active-timer" class="hidden">
+        <div id="timer" class="active-pulse">25:00</div>
+        <p id="status" style="color: #fff; letter-spacing: 5px;">STAY FOCUSED</p>
+    </div>
+
+    <script>
+        let time;
+        let interval;
+        const body = document.getElementById('body');
+
+        // Block accidental tab closing
+        window.onbeforeunload = function() {
+            return "DON'T QUIT NOW.";
+        };
+
+        function lockIn() {
+            let inputMins = document.getElementById('mins').value;
+            time = inputMins * 60;
+            document.getElementById('setup').classList.add('hidden');
+            document.getElementById('active-timer').classList.remove('hidden');
+            startCountdown();
+        }
+
+        function startCountdown() {
+            interval = setInterval(() => {
+                time--;
+                updateDisplay();
+                if (time <= 0) {
+                    clearInterval(interval);
+                    document.getElementById('timer').style.color = "#00ff00";
+                    document.getElementById('status').innerText = "SESSION COMPLETE";
+                    document.getElementById('timer').classList.remove('active-pulse');
+                }
+            }, 1000);
+        }
+
+        function updateDisplay() {
+            let m = Math.floor(time / 60);
+            let s = time % 60;
+            document.getElementById('timer').innerText = `${m}:${s < 10 ? '0' : ''}${s}`;
+        }
+
+        // The "Cheater" detection
+        document.addEventListener("visibilitychange", () => {
+            if (document.hidden && time > 0) {
+                time = parseInt(document.getElementById('mins').value) * 60; 
+                body.classList.add('reset-flash');
+                
+                // Forces a hard stop until they acknowledge the reset
+                alert("LOCKED IN ALERT: DETECTION TRIGGERED. TIMER RESET.");
+                
+                body.classList.remove('reset-flash');
+                updateDisplay();
+            }
+        });
+    </script>
+</body>
+</html>
